@@ -128,6 +128,141 @@
   Hecho por Gonzalo · 1.º ESO C
 </footer>
   </main>
+  <div class="actions" style="justify-content: center;">
+  <button type="button" id="importJSON">Importar JSON</button>
+  <button type="button" id="copyJSON" disabled>Copia JSON</button>
+  <input type="file" id="jsonFile" accept=".json,application/json" hidden>
+</div>
+<p id="jsonMessage" class="muted" role="status" style="text-align: center;" hidden></p>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const input = $("jsonFile");
+    const message = $("jsonMessage");
+    const copyButton = $("copyJSON");
+    const questionsByPrompt = new Map(
+      topics.flatMap(topic => topic.questions).map(question => [question.prompt, question])
+    );
+
+    function notify(text) {
+      message.textContent = text;
+      message.hidden = false;
+    }
+
+    function updateCopyButton() {
+      copyButton.disabled = round.length === 0;
+    }
+
+    for (const id of ["start", "again", "retry"]) {
+      $(id).addEventListener("click", updateCopyButton);
+    }
+
+    copyButton.addEventListener("click", () => {
+      const finished = index === round.length;
+      const save = {
+        game: "teseracto-lengua-3eso-ud2",
+        version: 1,
+        block: $("block").value,
+        mode: $("length").value,
+        questions: round.map(question => question.prompt),
+        completed: finished ? round.length : index + Number(answered),
+        errors: errors.map(({ question, chosen }) => ({
+          position: round.indexOf(question),
+          chosen
+        }))
+      };
+
+      const blob = new Blob([JSON.stringify(save, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "partida-teseracto-3eso.json";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify("Copia de la partida descargada.");
+    });
+
+    $("importJSON").addEventListener("click", () => input.click());
+
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if (!file) return;
+      input.value = "";
+
+      try {
+        const save = JSON.parse(await file.text());
+
+        if (
+          save?.game !== "teseracto-lengua-3eso-ud2" ||
+          save.version !== 1 ||
+          !["all", "com", "len", "lit"].includes(save.block) ||
+          !["topics", "10", "full"].includes(save.mode) ||
+          !Array.isArray(save.questions) ||
+          !save.questions.length ||
+          new Set(save.questions).size !== save.questions.length ||
+          !Number.isInteger(save.completed) ||
+          save.completed < 0 ||
+          save.completed > save.questions.length ||
+          !Array.isArray(save.errors)
+        ) {
+          throw new Error("Formato de partida inválido");
+        }
+
+        const restoredRound = save.questions.map(prompt => questionsByPrompt.get(prompt));
+        if (restoredRound.some(question => !question)) {
+          throw new Error("Pregunta desconocida");
+        }
+
+        const usedPositions = new Set();
+        const restoredErrors = save.errors.map(error => {
+          const { position, chosen } = error;
+          if (
+            !Number.isInteger(position) ||
+            position < 0 ||
+            position >= save.completed ||
+            usedPositions.has(position)
+          ) {
+            throw new Error("Posición de respuesta inválida");
+          }
+
+          const question = restoredRound[position];
+          if (!question.options.includes(chosen) || chosen === question.correct) {
+            throw new Error("Respuesta inválida");
+          }
+
+          usedPositions.add(position);
+          return { question, chosen };
+        });
+
+        $("block").value = save.block;
+        $("length").value = save.mode;
+        updateCount();
+
+        round = restoredRound;
+        index = save.completed;
+        errors = restoredErrors;
+        correctCount = index - errors.length;
+        answered = false;
+
+        if (index === round.length) {
+          finish();
+        } else {
+          show("game");
+          renderQuestion();
+        }
+
+        updateCopyButton();
+        notify("Partida importada.");
+      } catch {
+        notify("Elige un archivo JSON descargado con «Copia JSON» en este juego.");
+      }
+    });
+  });
+</script>
 
   <script>
     // Cada fila contiene pregunta, respuesta correcta, dos distractores y explicación.
