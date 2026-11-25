@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17152b">
+  <title>Teseracto · Lengua y Literatura · 3.º ESO</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #17152b;
+      --panel: #24213b;
+      --border: #514a70;
+      --text: #faf7ff;
+      --muted: #d0c7e7;
+      --accent: #e5c6ff;
+      --green: #a9f5c9;
+      --red: #ffbbc7;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      background: radial-gradient(ellipse at top right, #422858, transparent 65%), var(--background);
+      font: 1rem/1.55 system-ui, sans-serif;
+    }
+
+    main { width: min(100% - 2rem, 53rem); margin: auto; padding: 2rem 0; }
+    header { margin-bottom: 1.5rem; }
+    header p { margin: 0 0 .35rem; color: var(--accent); font-weight: 700; }
+    h1, h2, h3 { line-height: 1.2; margin: 0 0 .8rem; }
+    h1 { font-size: clamp(2rem, 6vw, 3.6rem); letter-spacing: -.045em; }
+    h2 { font-size: clamp(1.35rem, 4vw, 2rem); }
+    .panel { padding: clamp(1rem, 4vw, 2rem); border: 1px solid var(--border); border-radius: 1.35rem; background: var(--panel); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    label { display: block; font-weight: 700; }
+    select, button { font: inherit; color: inherit; border: 1px solid var(--border); border-radius: .7rem; padding: .7rem .9rem; }
+    select { width: 100%; margin-top: .35rem; background: var(--background); }
+    button { cursor: pointer; background: var(--background); }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    :focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    h2:focus, #feedback:focus { outline: none; }
+    .primary { color: #241633; background: var(--accent); border-color: var(--accent); font-weight: 800; }
+    .actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.2rem; }
+    .muted { color: var(--muted); }
+    .status { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .25rem 1rem; color: var(--muted); }
+    progress { width: 100%; margin: .6rem 0 1rem; height: .7rem; accent-color: var(--accent); }
+    #topic { color: var(--accent); font-weight: 700; margin: 0 0 .45rem; }
+    #answers { display: grid; gap: .65rem; }
+    .answer { text-align: left; min-height: 3rem; }
+    .answer:disabled { cursor: default; }
+    .right { color: var(--green); border-color: var(--green); }
+    .wrong { color: var(--red); border-color: var(--red); }
+    #feedback { margin: 1rem 0 0; padding: .85rem; border: 1px solid; border-radius: .7rem; }
+    .grade { font-size: clamp(2rem, 9vw, 3.5rem); font-weight: 800; color: var(--accent); margin: 0; }
+    details { margin-top: 1rem; }
+    summary { cursor: pointer; font-weight: 700; }
+    #review { padding-left: 1.4rem; }
+    #review li { margin: 1rem 0; }
+    @media (max-width: 37rem) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p>Academia Teseracto · 3.º ESO · Unidad II</p>
+      <h1>Reto de Lengua y Literatura</h1>
+    </header>
+
+    <section id="setup" class="panel" aria-labelledby="setupTitle">
+      <h2 id="setupTitle" tabindex="-1">Elige tu partida</h2>
+      <div class="grid">
+        <label for="block">Contenido
+          <select id="block">
+            <option value="all">Toda la unidad</option>
+            <option value="com">Comunicación</option>
+            <option value="len">Lengua</option>
+            <option value="lit">Literatura medieval</option>
+          </select>
+        </label>
+        <label for="length">Partida
+          <select id="length">
+            <option value="topics">Una pregunta por tema</option>
+            <option value="10">Ronda rápida · hasta 10</option>
+            <option value="full">Banco completo</option>
+          </select>
+        </label>
+      </div>
+      <p id="count" class="muted" aria-live="polite"></p>
+      <button id="start" class="primary">Empezar</button>
+    </section>
+
+    <section id="game" class="panel" aria-labelledby="question" hidden>
+      <div class="status">
+        <span id="position"></span>
+        <span id="score"></span>
+      </div>
+      <progress id="progress" aria-label="Preguntas respondidas"></progress>
+      <p id="topic"></p>
+      <h2 id="question" tabindex="-1"></h2>
+      <div id="answers" role="group" aria-label="Opciones de respuesta"></div>
+      <p id="feedback" tabindex="-1" hidden></p>
+      <div class="actions">
+        <button id="next" class="primary" hidden>Siguiente pregunta</button>
+        <button id="quit">Volver al menú</button>
+      </div>
+    </section>
+
+    <section id="result" class="panel" aria-labelledby="resultTitle" hidden>
+      <h2 id="resultTitle" tabindex="-1">Resultados</h2>
+      <p id="grade" class="grade"></p>
+      <p id="summary"></p>
+      <details id="mistakes" hidden>
+        <summary>Ver las preguntas falladas</summary>
+        <ol id="review"></ol>
+      </details>
+      <div class="actions">
+        <button id="retry" class="primary" hidden>Practicar los fallos</button>
+        <button id="again" class="primary">Jugar otra partida</button>
+        <button id="menu">Cambiar contenido</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Cada fila contiene pregunta, respuesta correcta, dos distractores y explicación.
+    // La primera opción del banco es la correcta. El juego mezcla las tres al mostrarlas.
+    const bank = `
+#com|Comprensión lectora
+¿Qué conviene hacer antes de leer un texto?|Mirar el título y anticipar el asunto.|Redactar el resumen definitivo.|Identificar todas las inferencias.|El título y el tipo de texto orientan la primera lectura.
+«El uso del móvil en clase» expresa…|Un tema.|Un resumen.|Una idea principal completa.|El tema nombra el asunto. La idea principal afirma algo acerca de él.
+¿Qué opción funciona como idea principal?|El huerto escolar ayuda a aprender ciencias de forma práctica.|El huerto escolar.|Mi opinión sobre los huertos.|La idea principal expresa lo más importante que se afirma sobre el tema.
+¿Qué debe incluir un resumen?|Las ideas imprescindibles con palabras propias.|Todas las citas y ejemplos del original.|La opinión personal del lector.|El resumen conserva lo esencial y prescinde de opiniones y detalles secundarios.
+«Al entrar, Lidia sacudió su abrigo empapado y cerró el paraguas». ¿Qué se infiere?|Probablemente llovía fuera.|Lidia cerró el paraguas.|El abrigo estaba mojado.|La lluvia se deduce de las pistas. Las otras dos informaciones aparecen expresamente.
+«Cerré la puerta. A mi espalda, la madera volvió a crujir». ¿Quién cuenta y qué atmósfera sugiere?|Un narrador en primera persona y una atmósfera de inquietud.|Un narrador en tercera persona y una celebración.|El autor real, obligatoriamente, y una escena cómica.|«Cerré» y «mi» marcan la primera persona. El crujido inesperado sugiere inquietud.
+Mientras lees, encuentras una palabra desconocida. ¿Qué estrategia recomiendan los apuntes?|Intentar deducir su significado por el contexto.|Cambiar el tema del texto.|Copiarla en el resumen sin interpretarla.|Las palabras y las oraciones que la rodean ofrecen pistas.
+
+#com|El diálogo
+¿Qué ocurre con los papeles de emisor y receptor en un diálogo?|Los interlocutores los alternan.|Siempre habla la misma persona.|Solo existe emisor cuando se escribe.|Cada intervención ocupa un turno y los papeles se intercambian.
+¿Cuál es un ejemplo de diálogo planificado?|Un debate con turnos acordados.|Una charla que surge en el recreo.|Un saludo improvisado al cruzarse.|El debate se prepara y suele ajustarse a unas reglas.
+¿Qué signo abre una intervención en un diálogo narrativo escrito?|La raya (—).|El guion (-).|El punto y coma (;).|Cada nueva intervención comienza en una línea nueva con raya.
+En «—Voy contigo —añadió Elena», ¿qué palabra es un verbo de habla?|Añadió.|Voy.|Contigo.|«Añadió» introduce o comenta lo que se dice.
+¿Qué recurso aporta información en un diálogo oral presencial?|Las pausas y los gestos.|Las rayas impresas.|Los párrafos de una novela.|La voz, las pausas y los gestos ayudan a interpretar una intervención oral.
+¿Cómo adaptarías el registro en una entrevista formal?|Emplearía expresiones corteses y respetaría los turnos.|Hablaría igual que con cualquier amigo en el recreo.|Interrumpiría para demostrar interés.|El registro depende de la situación y de los interlocutores.
+¿Qué hace el estilo directo?|Reproduce las palabras del hablante.|Integra siempre el mensaje mediante «que».|Resume la conversación con palabras del narrador.|Las comillas y las rayas pueden señalar la reproducción directa.
+
+#com|Del estilo directo al indirecto
+Al contarlo días después, ¿cómo pasas «Mañana traeré mi cuaderno», dijo Ana, a estilo indirecto?|Ana dijo que al día siguiente traería su cuaderno.|Ana dijo que mañana traigo mi cuaderno.|Ana dijo si al día anterior traería su cuaderno.|Cambia el marco temporal, el posesivo y el futuro pasa al condicional.
+«¿Vendrás al ensayo?», preguntó Luis. ¿Cómo se transforma?|Luis preguntó si vendría al ensayo.|Luis preguntó que vendría al ensayo.|Luis preguntó dónde vendría al ensayo.|Las preguntas de sí o no se introducen con «si».
+«¿Dónde vives?», preguntó Lola. ¿Cómo se transforma?|Lola preguntó dónde vivía.|Lola preguntó si vivía.|Lola preguntó donde vive.|La pregunta parcial conserva el interrogativo con tilde.
+«Cierra la ventana», pidió la profesora. ¿Cómo se transforma?|La profesora pidió que cerrara la ventana.|La profesora pidió si cerrará la ventana.|La profesora pidió que cierra la ventana.|La orden se integra con «que» y una forma de subjuntivo.
+¿Qué versión encaja con «Estoy cansada», dice Lucía?|Lucía dice que está cansada.|Lucía dice si estaba cansada.|Lucía dice que estaré cansada.|Si el verbo de habla está en presente, el tiempo de lo dicho puede mantenerse.
+Si el relato cambia de lugar y momento, ¿qué pareja de cambios puede ser adecuada?|«Aquí» → «allí» y «ayer» → «el día anterior».|«Aquí» → «mañana» y «ayer» → «allí».|«Aquí» → «ayer» y «ayer» → «esta».|Los deícticos de lugar y tiempo se ajustan a la situación desde la que se cuenta.
+Desde un momento posterior, ¿qué versión encaja con «Ayer estudié», dijo Iván?|Iván dijo que había estudiado el día anterior.|Iván preguntó si estudiaba mañana.|Iván dijo que estudiaría al día siguiente.|En este contexto, «estudié» puede pasar a «había estudiado».
+
+#len|Morfología y clases de palabras
+¿Qué es «este» en «Este libro es nuevo»?|Un determinante.|Un pronombre.|Un adverbio.|Acompaña y delimita al sustantivo «libro».
+¿Qué es «este» en «Este es nuevo»?|Un pronombre.|Un determinante.|Una conjunción.|Identifica aquello de lo que se habla sin acompañar a un sustantivo.
+¿Qué categorías tienen «mis», «amigas» y «altas» en «mis amigas altas»?|Determinante, sustantivo y adjetivo.|Pronombre, verbo y determinante.|Adjetivo, pronombre y sustantivo.|«Mis» delimita, «amigas» nombra y «altas» expresa una propiedad.
+¿Qué categorías tienen «ayer», «con» y «pero»?|Adverbio, preposición y conjunción.|Adjetivo, pronombre y verbo.|Sustantivo, conjunción e interjección.|«Ayer» indica tiempo, «con» introduce un término y «pero» une segmentos.
+¿Qué categorías tienen «¡Ay!» y «escribieron»?|Interjección y verbo.|Adverbio y sustantivo.|Conjunción y adjetivo.|«¡Ay!» expresa una reacción. «Escribieron» es una forma verbal.
+
+#len|Estructura interna de las palabras
+¿Cómo se analiza «deslealtad»?|des- (prefijo) + leal (raíz) + -tad (sufijo).|des- (raíz) + leal (sufijo) + -tad (plural).|desleal (desinencia) + -tad (prefijo).|La raíz aporta la base de significado y los afijos derivativos crean una palabra.
+¿Qué aporta la «-s» de «libros»?|Flexión de número.|Un significado léxico nuevo.|La unión de dos raíces.|«Libros» es el plural de «libro».
+¿Cuál es una familia léxica?|Mar, marino, marinero y submarino.|Mar, martes, margen y mármol.|Pan, harina, horno y trigo.|Una familia léxica comparte raíz y significado básico.
+¿Cómo se clasifican «gatos», «papelera» y «sacapuntas»?|Simple, derivada y compuesta.|Derivada, simple y parasintética.|Compuesta, parasintética y simple.|«Gatos» tiene flexión, «papelera» lleva un sufijo y «sacapuntas» combina dos bases.
+¿Qué palabra es un ejemplo de parasíntesis?|Enrojecer.|Releer.|Papelera.|«Enrojecer» incorpora prefijo y sufijo sin una base intermedia con ese sentido.
+¿Cuál es la raíz de «cantábamos»?|cant-|cantá-|-ábamos|«Cant-» aporta el significado léxico. La terminación contiene la vocal temática y los rasgos gramaticales.
+
+#len|El verbo en voz activa
+¿Cuál es la serie de formas no personales de «cantar»?|Cantar, cantando, cantado.|Canto, canté, cantaré.|Canta, cante, cantaba.|Son, respectivamente, infinitivo, gerundio y participio.
+¿Cómo se clasifican «cantar», «beber» y «vivir»?|Primera, segunda y tercera conjugación.|Segunda, tercera y primera conjugación.|Tercera, primera y segunda conjugación.|Las terminaciones -ar, -er e -ir identifican las tres conjugaciones.
+¿Qué modo aparece en «Ojalá llegue pronto»?|Subjuntivo.|Indicativo.|Imperativo.|El subjuntivo aparece, entre otros contextos, al expresar deseos.
+¿Qué modo aparece en «Venid ahora»?|Imperativo.|Subjuntivo.|Indicativo.|«Venid» formula una orden afirmativa dirigida a vosotros.
+¿Qué tiempos son «canto», «cantaba» y «canté»?|Presente, pretérito imperfecto y pretérito perfecto simple.|Presente, pluscuamperfecto y futuro simple.|Imperativo, condicional simple y pretérito anterior.|Las tres formas pertenecen al indicativo y son tiempos simples.
+¿Qué tiempos son «he cantado», «había cantado» y «hube cantado»?|Pretérito perfecto compuesto, pluscuamperfecto y pretérito anterior.|Pretérito anterior, futuro compuesto y pluscuamperfecto.|Pluscuamperfecto, perfecto compuesto y condicional compuesto.|Son tiempos compuestos del indicativo formados con «haber» y participio.
+¿Qué tiempos son «habré cantado» y «habría cantado»?|Futuro compuesto y condicional compuesto.|Futuro simple y condicional simple.|Pretérito anterior y futuro compuesto.|La forma del auxiliar distingue el futuro del condicional.
+¿Qué pareja corresponde al futuro simple y al condicional simple del indicativo?|Cantaré y cantaría.|Cantare y cantara.|Habré cantado y habría cantado.|Las dos formas pedidas se conjugan en una sola palabra.
+¿Qué tiempos del subjuntivo son «cante», «cantara» y «haya cantado»?|Presente, imperfecto y perfecto.|Imperfecto, perfecto y presente.|Futuro, pluscuamperfecto y perfecto.|«Cantase» también es imperfecto de subjuntivo.
+¿Qué tiempos del subjuntivo son «hubiera cantado», «cantare» y «hubiere cantado»?|Pluscuamperfecto, futuro simple y futuro compuesto.|Perfecto, imperfecto y condicional compuesto.|Futuro compuesto, presente y pretérito anterior.|Las dos formas de futuro son hoy poco frecuentes.
+¿Qué análisis corresponde a «escribieron»?|3.ª persona del plural, pretérito perfecto simple de indicativo, voz activa.|2.ª persona del plural, pretérito imperfecto de subjuntivo, voz activa.|3.ª persona del singular, pretérito perfecto compuesto de indicativo, voz pasiva.|La desinencia «-ieron» aporta esos rasgos. «Escribir» pertenece a la tercera conjugación.
+¿Cuál está correctamente escrita como forma compuesta activa?|Ellas han escrito.|Ellas han escritas.|Ellas han escribir.|En «haber + participio», el participio permanece invariable.
+
+#len|Núcleo verbal y perífrasis
+En «El equipo ha preparado un plan», ¿cuál es el núcleo verbal?|Ha preparado.|Preparado un plan.|Ha preparado un plan.|El auxiliar y el participio constituyen un tiempo compuesto. «Un plan» es CD.
+¿Qué expresa «Tiene que estudiar»?|Obligación.|Repetición.|Probabilidad.|«Tener que + infinitivo» forma una perífrasis de obligación.
+¿Qué valores expresan «Puede nevar» y «Debe de nevar» en estos ejemplos?|Posibilidad y probabilidad.|Obligación e inicio.|Continuidad y repetición.|«Poder + infinitivo» expresa posibilidad. «Deber de + infinitivo» suele expresar probabilidad.
+¿Qué valores expresan «Se puso a leer» y «Siguió leyendo»?|Inicio y continuidad.|Continuidad y hábito.|Obligación y probabilidad.|«Ponerse a + infinitivo» marca el inicio. «Seguir + gerundio» indica continuidad.
+¿Qué valores expresan «Volvió a llamar» y «Suele llamar»?|Repetición y hábito.|Inicio y obligación.|Probabilidad y fin.|«Volver a» presenta una acción que se repite. «Soler» la presenta como habitual.
+¿Qué valores expresan «Dejó de correr» y «Va a correr» si esta última anuncia su próximo entrenamiento?|Interrupción y acción próxima.|Repetición y hábito.|Duración y obligación.|«Dejar de» marca el cese. «Ir a + infinitivo» puede anunciar una acción próxima.
+¿En cuál de estas oraciones hay una perífrasis?|Tengo que leerlo.|Prometió leerlo.|Voy a la biblioteca a leerlo.|«Tengo que leerlo» expresa obligación. En las otras, «prometer» e «ir a la biblioteca» conservan su significado léxico.
+
+#len|Oración simple y sintagmas
+¿Cuál es el sujeto de «Llegaron los trenes»?|Los trenes.|Llegaron.|El sujeto está omitido.|El verbo concuerda en plural con «los trenes», aunque el sujeto aparece detrás.
+¿Cuál es el sujeto omitido de «Llegamos temprano»?|Nosotros o nosotras.|Ellos o ellas.|Tú.|La terminación «-mos» indica la primera persona del plural.
+¿Cuál es una oración impersonal?|Había muchas personas.|Llegaron muchas personas.|Vinieron dos trenes.|El verbo «haber» existencial se mantiene en singular y la oración carece de sujeto.
+¿Qué modalidad presenta «Ojalá llegue pronto»?|Desiderativa.|Exhortativa.|Dubitativa.|La oración expresa un deseo.
+¿Qué modalidad presenta «Quizá llegue pronto»?|Dubitativa.|Interrogativa.|Exclamativa.|«Quizá» introduce una duda o posibilidad.
+¿Qué tipos de sintagma son «los buenos libros», «muy contenta» y «bastante lejos»?|SN, SAdj y SAdv.|SAdj, SAdv y SN.|SPrep, SN y SV.|Los núcleos son el sustantivo «libros», el adjetivo «contenta» y el adverbio «lejos».
+¿Qué tipos de sintagma son «de mi barrio» y «lee dos libros»?|SPrep y SV.|SN y SAdj.|SAdv y SPrep.|«De» introduce un término. «Lee» es el núcleo del sintagma verbal.
+¿Qué función cumple «de historia» en «el libro de historia»?|Complemento del nombre.|Complemento del adverbio.|Complemento directo.|El sintagma preposicional complementa al sustantivo «libro».
+¿Qué complementan «de casa» en «lejos de casa» y «de ti» en «orgulloso de ti»?|Un adverbio y un adjetivo.|Un verbo y un sustantivo.|Dos sustantivos.|«Lejos» es adverbio y «orgulloso» es adjetivo.
+¿Por qué «Las jugadoras han ganado el partido» es una oración simple?|Porque tiene un solo núcleo verbal principal.|Porque contiene un sujeto omitido.|Porque «han» y «ganado» son dos núcleos independientes.|Un tiempo compuesto forma un único núcleo verbal.
+
+#len|Predicado nominal y complementos esenciales
+¿Qué función cumple «contentas» en «Las alumnas están contentas»?|Atributo.|Complemento directo.|Complemento circunstancial de modo.|Concuerda con el sujeto y se puede sustituir por «lo»: las alumnas lo están.
+¿Qué tipo de predicado tiene «El aula parece luminosa»?|Nominal.|Verbal transitivo.|Verbal con complemento agente.|«Parece» es copulativo y «luminosa» funciona como atributo.
+¿Qué grupo es CD en «Vio a Marta»?|A Marta.|El sujeto omitido.|La preposición «a» por sí sola.|Se sustituye por «la»: la vio. La «a» personal puede aparecer con el CD.
+¿Qué grupo es CI en «Dio la carta a Eva»?|A Eva.|La carta.|El sujeto omitido.|«Le dio la carta» sustituye el destinatario por «le».
+¿Qué función cumple «en Ana» en «Confía en Ana»?|Complemento de régimen.|Complemento agente.|Complemento circunstancial de lugar.|«Confiar» selecciona la preposición «en»: confía en ella.
+¿Qué oración es intransitiva?|Luis corre.|Luis leyó el cuento.|Luis entregó el cuento a Eva.|En «Luis corre» el verbo aparece sin CD.
+
+#len|Otros complementos, argumentos y adjuntos
+¿Qué función cumple «cansadas» en «Las niñas llegaron cansadas»?|Complemento predicativo.|Atributo.|Complemento circunstancial de modo.|«Cansadas» concuerda con el sujeto y expresa su estado con un verbo predicativo.
+¿Qué función cumple «abierta» en «Encontró abierta la puerta»?|Complemento predicativo del CD.|Circunstancial de modo.|Complemento de régimen.|«Abierta» expresa un estado de «la puerta» y concuerda con ese CD.
+¿Qué función cumple «rápidamente» en «Las niñas llegaron rápidamente»?|Complemento circunstancial de modo.|Complemento predicativo.|Complemento agente.|El adverbio indica cómo se produjo la llegada.
+¿Qué función cumple «por Ana» en «El informe fue escrito por Ana»?|Complemento agente.|Complemento de régimen.|Complemento indirecto.|Identifica a quien realiza la acción en la pasiva.
+¿Qué función cumple «encima de la mesa» en «Puso el libro encima de la mesa»?|Complemento locativo argumental.|Complemento circunstancial de tiempo.|Complemento de régimen.|En este uso, «poner» selecciona el lugar donde se coloca algo.
+¿Qué función cumple «en la mesa» en «Leyó el libro en la mesa»?|Circunstancial de lugar y adjunto.|Locativo argumental.|Complemento directo.|El lugar añade información que «leer» no requiere específicamente.
+En «Puso el libro en la mesa ayer», ¿qué función cumple «ayer» y cómo se clasifica?|Circunstancial de tiempo y adjunto.|Complemento directo y argumento.|Locativo argumental.|«Ayer» sitúa temporalmente la acción sin ser seleccionado por «poner».
+¿Qué tipo de circunstancial es «con un pincel» en «Pintó la puerta con un pincel»?|De instrumento.|De compañía.|De finalidad.|Expresa el utensilio empleado para pintar.
+¿Qué indica «para ahorrar energía» en «Apagó la luz para ahorrar energía»?|Finalidad.|Causa.|Compañía.|Expresa el objetivo con el que se realiza la acción.
+
+#len|Voz pasiva y usos de «se»
+¿Cuál es la pasiva perifrástica de «Los alumnos prepararon las escenas»?|Las escenas fueron preparadas por los alumnos.|Se prepararon las escenas.|Los alumnos han preparado las escenas.|La pasiva perifrástica emplea «ser» y un participio que concuerda con «las escenas».
+¿Qué papel tiene «las escenas» en «Las escenas fueron preparadas»?|Sujeto paciente.|Complemento agente.|Complemento directo.|El CD de la activa pasa a sujeto paciente de la pasiva.
+¿Cómo se clasifica «Se venden pisos»?|Pasiva refleja.|Impersonal refleja.|Pasiva perifrástica.|«Pisos» es sujeto paciente y concuerda con «venden».
+¿Cómo se clasifica «Se busca a los testigos»?|Impersonal refleja.|Pasiva refleja.|Pasiva perifrástica.|El verbo está en singular, carece de sujeto y «a los testigos» es CD de persona.
+¿Qué oración presenta una impersonal refleja sin CD expreso?|Se vive bien aquí.|Se vendieron varios pisos.|Las puertas fueron cerradas.|«Se vive» está en tercera persona del singular y carece de sujeto.
+¿Cuál concuerda correctamente en pasiva refleja?|Se publicaron las listas.|Se publicó las listas.|Se publicaron la lista.|El verbo debe concordar en plural con el sujeto paciente «las listas».
+
+#len|Análisis morfosintáctico
+En «La bibliotecaria entregó los libros nuevos a los alumnos ayer», ¿qué análisis es correcto?|«La bibliotecaria» es SN sujeto y «entregó» es núcleo del predicado.|«Los alumnos» es el sujeto y «ayer» es núcleo del predicado.|«La bibliotecaria» es CI y «entregó» es atributo.|«La bibliotecaria» concuerda con «entregó» en tercera persona del singular.
+En la misma oración, ¿qué análisis recibe «los libros nuevos»?|SN con función de CD. «Nuevos» complementa a «libros».|SPrep con función de CI. «Nuevos» es una preposición.|SN con función de sujeto. «Nuevos» es el núcleo.|«La bibliotecaria los entregó» permite reconocer el CD.
+¿Qué análisis recibe «a los alumnos» en «La bibliotecaria entregó los libros nuevos a los alumnos ayer»?|SPrep con función de CI. «Los alumnos» es su término.|SN con función de CD. «A» es su determinante.|SAdv con función de CC. «Alumnos» es adverbio.|«Les entregó los libros» confirma el CI. La preposición «a» introduce el SN.
+¿Qué análisis recibe «ayer» en «La bibliotecaria entregó los libros nuevos a los alumnos ayer»?|Adverbio de tiempo, núcleo de un SAdv que funciona como CC de tiempo.|Adjetivo que funciona como atributo.|Sustantivo que funciona como CD.|«Ayer» sitúa en el tiempo la acción de entregar.
+¿Cómo se analiza morfológicamente «entregó»?|3.ª persona del singular, pretérito perfecto simple de indicativo, primera conjugación.|1.ª persona del singular, presente de subjuntivo, segunda conjugación.|3.ª persona del plural, pretérito imperfecto de indicativo, tercera conjugación.|El infinitivo «entregar» termina en -ar. «Entregó» equivale a «él o ella entregó».
+¿Cómo se clasifica «La bibliotecaria entregó los libros nuevos a los alumnos ayer»?|Simple, personal, activa, transitiva y enunciativa afirmativa.|Impersonal, pasiva refleja e interrogativa.|Compuesta, copulativa y exclamativa.|Tiene un solo núcleo verbal, sujeto expreso y CD, y afirma un hecho.
+
+#lit|Edad Media, lírica tradicional y métrica
+¿Entre qué siglos se sitúa convencionalmente la Edad Media occidental?|Entre los siglos V y XV.|Entre los siglos XI y XII exclusivamente.|Entre los siglos XVI y XVIII.|En la península se conserva literatura romance, sobre todo, desde los siglos XI y XII.
+¿Qué espacios impulsaban la cultura escrita medieval?|Monasterios y cortes.|Únicamente plazas y caminos.|Solo corrales de comedias.|La cultura escrita convivió con una intensa transmisión oral.
+¿Dónde aparecen las jarchas?|Al final de moaxajas árabes o hebreas.|Al comienzo de los cantares de gesta.|Al final de las coplas de Manrique.|Son composiciones breves, a menudo con una voz femenina que lamenta la ausencia del amado.
+¿Qué rasgos son propios de las cantigas de amigo?|Gallegoportugués, voz femenina, paralelismos y naturaleza.|Castellano jurídico y finalidad legislativa.|Versos alejandrinos y relatos de milagros.|La voz poética y el paisaje aparecen con frecuencia junto a estribillos.
+¿Qué define a los villancicos en este tema?|Lírica tradicional castellana que suele incluir estribillo.|Cantares épicos de medida irregular.|Textos dramáticos protagonizados por pastores.|Los villancicos tradicionales pueden tratar asuntos variados, como el amor o el trabajo.
+¿Qué distingue la rima asonante de la consonante?|En la asonante coinciden solo las vocales desde la última vocal tónica.|En la asonante coinciden únicamente las consonantes.|En la asonante se repite siempre toda la última palabra.|En la consonante coinciden vocales y consonantes desde la última vocal tónica.
+¿Qué ajuste se aplica a un verso que acaba en palabra aguda?|Se suma una sílaba métrica.|Se resta una sílaba métrica.|Se suman dos sílabas métricas.|Con final esdrújulo se resta una. Con final llano se conserva el cómputo.
+Con sinalefa, ¿cómo se cuenta el grupo «la estrella» dentro de un verso?|la_es-tre-lla: tres sílabas.|la-es-tre-lla: cuatro sílabas.|la_es-tre_lla: dos sílabas.|Se unen métricamente la vocal final de «la» y la inicial de «estrella».
+¿Qué pareja clasifica bien un octosílabo y un eneasílabo?|Arte menor y arte mayor.|Arte mayor y arte menor.|Los dos son de arte menor.|El arte menor llega hasta ocho sílabas y el mayor comienza en nueve.
+
+#lit|Juglaría, Cantar de mio Cid y romances
+¿Qué caracteriza a los cantares de gesta?|Narran hazañas y suelen presentar tiradas de rima asonante y medida irregular.|Se componen siempre de cuaderna vía.|Constituyen únicamente poemas amorosos de voz femenina.|La épica de juglaría se recitaba o cantaba ante un público.
+¿Quién protagoniza el Cantar de mio Cid?|Rodrigo Díaz de Vivar.|Rodrigo Manrique.|Alfonso X el Sabio.|Rodrigo Díaz de Vivar recibe el epíteto de «Campeador».
+¿Cuál es el orden de los tres cantares del Cid?|Destierro, bodas y afrenta de Corpes.|Bodas, afrenta de Corpes y destierro.|Afrenta de Corpes, destierro y bodas.|La obra pasa del destierro a la recuperación del favor real y termina con la reparación de la honra familiar.
+¿Qué sucede en la afrenta de Corpes?|Los infantes maltratan y abandonan a sus esposas. El Cid obtiene justicia.|El Cid es desterrado por primera vez.|El Cid y sus hijas llegan por primera vez a Valencia.|La afrenta desencadena la reclamación de justicia y la recuperación de la honra familiar.
+¿Cuál es la métrica habitual del romance?|Versos octosílabos, asonancia en los pares e impares sueltos.|Cuatro alejandrinos con la misma rima consonante.|Versos endecasílabos con rima en todos los impares.|Ese esquema distingue al romance tradicional de la cuaderna vía.
+¿Qué reúne el Romancero viejo?|Romances tradicionales, entre ellos épicos, históricos y novelescos.|Solo las coplas de Jorge Manrique.|Únicamente relatos de milagros.|La tradición oral difundió romances de asuntos diversos.
+
+#lit|Mester de clerecía
+¿Qué caracteriza al mester de clerecía de los siglos XIII y XIV?|Poesía narrativa culta, fuentes escritas y frecuente intención didáctica.|Poesía exclusivamente improvisada por juglares.|Prosa exclusivamente jurídica.|Sus autores letrados escribían en romance y podían llegar a un público amplio.
+¿Cómo se compone la cuaderna vía?|Cuatro alejandrinos con una misma rima consonante.|Ocho octosílabos con asonancia en los pares.|Dos versos de siete sílabas con rima libre.|El esquema característico es 14A 14A 14A 14A.
+¿Qué ocurre en la cesura de un alejandrino de cuaderna vía?|Separa dos hemistiquios de siete sílabas y bloquea la sinalefa entre ellos.|Une dos estrofas de cuatro versos.|Obliga a sumar una sílaba al verso completo.|Cada hemistiquio se mide por separado.
+¿Qué escribió Gonzalo de Berceo?|Milagros de Nuestra Señora.|El conde Lucanor.|Laberinto de Fortuna.|La obra reúne 25 relatos de intervención de la Virgen y una introducción alegórica.
+¿Qué combina el Libro de buen amor, de Juan Ruiz?|Aventuras amorosas, fábulas, humor y pasajes religiosos.|Leyes castellanas y traducciones científicas.|Solo hazañas militares del Cid.|La mezcla de materiales convive con una intención moral ambigua.
+¿Qué personaje actúa como mediadora amorosa en el Libro de buen amor?|Trotaconventos.|Patronio.|Pleberio.|Trotaconventos anticipa rasgos de la figura de Celestina.
+
+#lit|Poesía culta del siglo XV
+¿Dónde se recoge buena parte de la poesía cortesana del siglo XV?|En cancioneros.|En códigos legales.|En moaxajas árabes.|Los cancioneros reúnen composiciones amorosas, satíricas y morales.
+¿Cómo se presenta al enamorado en el amor cortés?|Como servidor de una dama idealizada.|Como consejero que cuenta un ejemplo moral.|Como héroe que reclama justicia por una afrenta.|La dama suele aparecer como idealizada y difícil de alcanzar.
+¿Qué pareja de autor y obra es correcta?|Juan de Mena — Laberinto de Fortuna.|Jorge Manrique — Serranillas.|Marqués de Santillana — Milagros de Nuestra Señora.|Juan de Mena escribió el Laberinto. Las serranillas son del Marqués de Santillana.
+¿Qué género predomina en las Coplas a la muerte de su padre?|La elegía.|El cantar de gesta.|La comedia humanística.|Jorge Manrique lamenta la muerte de Rodrigo Manrique y reflexiona sobre la vida y la muerte.
+¿Qué tres vidas distingue Manrique en sus Coplas?|La terrenal, la de la fama y la eterna.|La de la infancia, la juventud y la vejez.|La cortesana, la pastoril y la guerrera.|La fama de las buenas obras perdura tras la vida terrenal y se distingue de la vida eterna.
+¿Cuál es el recorrido de las Coplas?|Reflexión general, ejemplos de figuras ilustres y elogio del padre.|Relato del destierro, bodas y afrenta de Corpes.|Problema inicial, cuento de Patronio y moraleja.|El poema avanza de lo general al recuerdo concreto de Rodrigo Manrique.
+En «Nuestras vidas son los ríos / que van a dar en la mar, / que es el morir», ¿qué representa el mar?|La muerte.|La juventud.|La fama.|La metáfora presenta la vida como un río cuyo destino es el mar.
+¿Cuál es el patrón habitual de la primera mitad de la copla manriqueña?|8a 8b 4c 8a 8b 4c.|14A 14A 14A 14A.|8– 8a 8– 8a.|La copla de pie quebrado consta de doce versos y suele alternar parejas de octosílabos con versos breves.
+¿Qué tópico evoca la pregunta «¿Dónde están quienes ya desaparecieron?»?|Ubi sunt?|Tempus fugit.|Amor cortés.|«Ubi sunt?» significa «¿dónde están?». «Tempus fugit» expresa el paso del tiempo.
+
+#lit|Prosa medieval
+¿Qué papel tuvo la corte de Alfonso X?|Impulsó traducciones y obras históricas, jurídicas y científicas en castellano.|Fundó el mester de juglaría.|Redactó El conde Lucanor como obra colectiva.|Alfonso X favoreció el castellano como lengua de cultura y administración.
+¿Qué obra alfonsí se vincula con el derecho?|Siete Partidas.|Estoria de España.|Cantigas de Santa María.|Las Siete Partidas son jurídicas. La Estoria de España es histórica.
+¿En qué lengua se compusieron las Cantigas de Santa María?|En gallegoportugués.|En castellano, como prosa jurídica.|En latín, como teatro religioso.|Son composiciones poéticas vinculadas a la corte alfonsí.
+¿Quién escribió El conde Lucanor y quién aconseja al conde?|Don Juan Manuel. El consejero es Patronio.|Alfonso X. El consejero es Pleberio.|Juan Ruiz. La consejera es Trotaconventos.|Patronio responde a los problemas del conde mediante cuentos y consejos.
+¿Cuántos ejemplos contiene la parte más conocida de El conde Lucanor?|51.|25.|40.|Los 51 ejemplos son cuentos de finalidad didáctica.
+¿Cuál es la secuencia habitual de un ejemplo de El conde Lucanor?|Problema, cuento, aplicación y moraleja.|Moraleja, problema, aplicación y cuento.|Cuento, moraleja, problema y aplicación.|El cuento se inserta en una conversación que le da sentido. Es un relato enmarcado.
+
+#lit|Teatro medieval y La Celestina
+¿Cuál es el texto dramático castellano conservado más antiguo según los apuntes?|Auto de los Reyes Magos.|La Celestina.|Representación del nacimiento de Nuestro Señor.|El Auto es anónimo, se conserva incompleto y gira en torno a los Reyes, la estrella y Herodes.
+¿Qué distingue al teatro religioso del profano medieval?|El religioso se vincula con celebraciones y episodios bíblicos. El profano, con fiestas y otros ámbitos seculares.|El religioso solo presenta historias épicas. El profano solo contiene oraciones.|El religioso se escribe siempre como romance. El profano, siempre como cuaderna vía.|El teatro medieval se desarrolló en ámbitos religiosos, cortesanos y públicos.
+¿Qué autor se asocia con las églogas religiosas y profanas del siglo XV?|Juan del Encina.|Gonzalo de Berceo.|Don Juan Manuel.|Las églogas dramáticas suelen presentar personajes pastoriles.
+¿Quién escribió la Representación del nacimiento de Nuestro Señor?|Gómez Manrique.|Jorge Manrique.|Juan de Mena.|Gómez Manrique destaca en el teatro religioso castellano del siglo XV.
+¿A quién se atribuye principalmente La Celestina?|A Fernando de Rojas.|A Juan del Encina.|A Alfonso X.|Rojas afirmó haber encontrado escrito el primer acto.
+¿Cuántos actos tienen la Comedia y la Tragicomedia de Calisto y Melibea, respectivamente?|16 y 21.|21 y 16.|12 y 25.|La versión ampliada se difundió como Tragicomedia a comienzos del siglo XVI.
+¿Qué papel tiene Celestina en el argumento?|Es la mediadora a la que recurre Calisto.|Es la hija de Pleberio.|Es la consejera del conde Lucanor.|Calisto recurre a la alcahueta para acercarse a Melibea.
+¿Quién pronuncia el lamento final de La Celestina?|Pleberio.|Calisto.|Patronio.|Pleberio, padre de Melibea, cierra la obra con su lamento.
+¿Por qué se discute el género de La Celestina?|Por su forma dialogada y su extensión, vinculadas a la comedia humanística y a la lectura dramatizada.|Porque alterna cuaderna vía y romances épicos.|Porque se conserva únicamente como un relato oral.|La obra se sitúa en la transición hacia el Renacimiento y su forma plantea un problema de clasificación.
+`;
+
+    const $ = id => document.getElementById(id);
+    const topics = [];
+    let currentTopic;
+
+    for (const line of bank.trim().split("\n").map(line => line.trim()).filter(Boolean)) {
+      if (line.startsWith("#")) {
+        const [block, name] = line.slice(1).split("|");
+        currentTopic = { block, name, questions: [] };
+        topics.push(currentTopic);
+      } else {
+        const [prompt, correct, distractor1, distractor2, explanation] = line.split("|");
+        currentTopic.questions.push({
+          topic: currentTopic.name,
+          prompt,
+          correct,
+          options: [correct, distractor1, distractor2],
+          explanation
+        });
+      }
+    }
+
+    let round = [];
+    let index = 0;
+    let correctCount = 0;
+    let errors = [];
+    let answered = false;
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function selectedTopics() {
+      const block = $("block").value;
+      return topics.filter(topic => block === "all" || topic.block === block);
+    }
+
+    function updateCount() {
+      const selection = selectedTopics();
+      const total = selection.reduce((sum, topic) => sum + topic.questions.length, 0);
+      const counts = { topics: selection.length, 10: Math.min(10, total), full: total };
+      const length = counts[$("length").value];
+      $("count").textContent = `${length} ${length === 1 ? "pregunta" : "preguntas"} en esta partida.`;
+    }
+
+    function show(screen) {
+      for (const id of ["setup", "game", "result"]) {
+        $(id).hidden = id !== screen;
+      }
+    }
+
+    function startRound(questions) {
+      round = shuffle(questions);
+      index = 0;
+      correctCount = 0;
+      errors = [];
+      show("game");
+      renderQuestion();
+    }
+
+    function startFromMenu() {
+      const selection = selectedTopics();
+      const mode = $("length").value;
+      if (mode === "topics") {
+        const questions = selection.map(topic => {
+          return topic.questions[Math.floor(Math.random() * topic.questions.length)];
+        });
+        startRound(questions);
+        return;
+      }
+      const questions = selection.flatMap(topic => topic.questions);
+      startRound(mode === "10" ? shuffle(questions).slice(0, 10) : questions);
+    }
+
+    function updateStatus() {
+      $("position").textContent = `Pregunta ${index + 1} de ${round.length}`;
+      $("score").textContent = `Aciertos ${correctCount}`;
+      $("progress").max = round.length;
+      $("progress").value = index + Number(answered);
+    }
+
+    function renderQuestion() {
+      const question = round[index];
+      answered = false;
+      updateStatus();
+      $("topic").textContent = question.topic;
+      $("question").textContent = question.prompt;
+      $("feedback").hidden = true;
+      $("next").hidden = true;
+      $("answers").replaceChildren();
+
+      shuffle(question.options).forEach((option, i) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer";
+        button.dataset.option = option;
+        button.textContent = `${String.fromCharCode(65 + i)}. ${option}`;
+        button.addEventListener("click", () => checkAnswer(question, option));
+        $("answers").append(button);
+      });
+
+      $("question").focus();
+    }
+
+    function checkAnswer(question, chosen) {
+      if (answered) return;
+      answered = true;
+      const isCorrect = chosen === question.correct;
+
+      if (isCorrect) {
+        correctCount++;
+      } else {
+        errors.push({ question, chosen });
+      }
+
+      for (const button of $("answers").children) {
+        button.disabled = true;
+        if (button.dataset.option === question.correct) button.classList.add("right");
+        if (!isCorrect && button.dataset.option === chosen) button.classList.add("wrong");
+      }
+
+      updateStatus();
+      const feedback = $("feedback");
+      feedback.className = isCorrect ? "right" : "wrong";
+      feedback.textContent = isCorrect
+        ? `¡Correcto! ${question.explanation}`
+        : `Respuesta correcta: ${question.correct} ${question.explanation}`;
+      feedback.hidden = false;
+
+      $("next").textContent = index + 1 === round.length ? "Ver resultados" : "Siguiente pregunta";
+      $("next").hidden = false;
+      feedback.focus();
+    }
+
+    function finish() {
+      $("grade").textContent = `${Math.round(correctCount / round.length * 100)} %`;
+      $("summary").textContent = `${correctCount} de ${round.length} respuestas correctas.`;
+      $("mistakes").hidden = errors.length === 0;
+      $("mistakes").open = false;
+      $("retry").hidden = errors.length === 0;
+      $("review").replaceChildren();
+
+      for (const { question, chosen } of errors) {
+        const item = document.createElement("li");
+        const title = document.createElement("strong");
+        title.textContent = question.prompt;
+        item.append(
+          title,
+          document.createElement("br"),
+          `Tu respuesta: ${chosen}`,
+          document.createElement("br"),
+          `Respuesta correcta: ${question.correct}`,
+          document.createElement("br"),
+          question.explanation
+        );
+        $("review").append(item);
+      }
+
+      show("result");
+      $("resultTitle").focus();
+    }
+
+    function openMenu() {
+      show("setup");
+      $("setupTitle").focus();
+    }
+
+    $("block").addEventListener("change", updateCount);
+    $("length").addEventListener("change", updateCount);
+    $("start").addEventListener("click", startFromMenu);
+    $("again").addEventListener("click", startFromMenu);
+    $("quit").addEventListener("click", openMenu);
+    $("menu").addEventListener("click", openMenu);
+
+    $("retry").addEventListener("click", () => {
+      startRound(errors.map(error => error.question));
+    });
+
+    $("next").addEventListener("click", () => {
+      if (!answered) return;
+      index++;
+      if (index === round.length) {
+        finish();
+      } else {
+        renderQuestion();
+      }
+    });
+
+    updateCount();
+  </script>
+</body>
+</html>
